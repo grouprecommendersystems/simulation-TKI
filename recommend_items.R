@@ -50,7 +50,7 @@ solve_optimization_CCCP <- function(num_prop, wg, infer_cons){
   solution <- c(result$pdv$x)/sum(c(result$pdv$x))
   
   if(length(solution[solution<0]) >0){
-   cat("negative sol: ",solution[solution<0],fill = TRUE)
+    #cat("negative sol: ",solution[solution<0],fill = TRUE)
     solution <- wg
   } 
   return(solution)
