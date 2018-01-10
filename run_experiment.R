@@ -94,6 +94,7 @@ run_exp <- function(rmat, fmat, umat, profiles, sizes, prob_feedback, prob_BLD, 
             u <- current_group[uidx]
             u_util <- umat[u,prop_items] #vector of utlity values
             #get feedback for all proposed item, given the utility
+            #TODO: break down into other functions for re-using
             feedback <- map(u_util,generate_profiles,conflict_type,prob_BLD,bins,b) %>%
               map(function(x){
                 sample(c("best","like","dislike"),1,prob=c(x[1],x[2],x[3]))
