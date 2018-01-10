@@ -25,7 +25,7 @@ source("recommend_items.R")
 #' @export
 #'
 #' @examples
-run_exp <- function(rmat, fmat, umat, profiles, sizes, prob_feedback, prob_BLD, num_trials, num_cyles, gamma, b, topk, bins){
+run_exp <- function(rmat, fmat, umat, profiles, sizes, prob_feedback, prob_BLD, num_trials, num_cycles, gamma, b, topk, bins){
   recom_idxs <- list(NULL)
   for(size in sizes){
     #load group information 
@@ -83,39 +83,24 @@ run_exp <- function(rmat, fmat, umat, profiles, sizes, prob_feedback, prob_BLD, 
         }
         num_prop_items <- num_prop_items + 1
         prop_items[num_prop_items]<-iidx_sorted[iidx_prop]
-        
+        who_what_prop <- c(user_proposed, iidx_sorted[iidx_prop])
+        names(who_what_prop) <- c("user","prop_item")
         
         #3. how the others evaluate the proposed item, including the one proposing items
         eval_users <- append(idx_evals,idx_selected,0) #containing index of users
         inferred_constraints <-list(NULL)
+        group_feedback <- list(NULL)
         for(uidx in 1:length(current_group)){
+          is_eval <- FALSE
+          #if user has at least 1 evaluation
           if(is.element(uidx,eval_users)){
-            conflict_type <- current_style[uidx]
-            u <- current_group[uidx]
-            u_util <- umat[u,prop_items] #vector of utlity values
-            #get feedback for all proposed item, given the utility
-            #TODO: break down into other functions for re-using
-            feedback <- map(u_util,generate_profiles,conflict_type,prob_BLD,bins,b) %>%
-              map(function(x){
-                sample(c("best","like","dislike"),1,prob=c(x[1],x[2],x[3]))
-              })
-            
-            u_feedback <- list(best=NULL,like=NULL,dislike=NULL)
-            for(i in 1:num_prop_items){ 
-              if(u==idx_selected && i==num_prop_items){  #implicit feedback, proposed item -> best
-                u_feedback$best<-c(u_feedback$best,prop_items[i])
-              }else{
-                if(feedback[[i]]=="best"){
-                  u_feedback$best<-c(u_feedback$best,prop_items[i])
-                }else if(feedback[[i]]=="like"){
-                  u_feedback$like<-c(u_feedback$like,prop_items[i])
-                }else{
-                  u_feedback$dislike<-c(u_feedback$dislike,prop_items[i])
-                }
-              }
-            }#end-for 1:num_prop_items
-          }#end if user has at least 1 evaluation
-          inferred_constraints[[uidx]] <- infer_constraints(fmat,u_feedback,num_prop_items)
+            is_eval <- TRUE
+          }
+          conflict_type <- current_style[uidx]
+          u <- current_group[uidx]
+          #get feedback 
+          group_feedback[[uidx]] <- generate_feedback(u,is_eval,umat,prop_items,who_what_prop,conflict_type,prob_BLD,bins,b)
+          inferred_constraints[[uidx]] <- infer_constraints(fmat,group_feedback[[uidx]],num_prop_items)
           
         }#end-for uidx in members 
         rec <- recommend_items(current_group,num_prop_items,fmat,inferred_constraints,WU_updated[[t]])

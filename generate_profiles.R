@@ -35,7 +35,7 @@ generate_propose_eval_prob <- function(group, group_type, prob_eval, gamma){
   return (res)
 }
 
-# input: a utility value of user 
+# input: x = a utility value of a user 
 #       type (compromising, competing, accommodating, avoiding, collaborating)
 #       prob_BLD_bin, bins, b (b^x), gamma
 # output: prob_BLD_new 
@@ -69,4 +69,46 @@ generate_profiles <- function(x, type, prob_BLD, bins, b){
   names(pd) <- "dislike"
   #print (c(pb,pl,pd))
   return (c(pb,pl,pd))
+}
+
+#' Title: generating feedback for EACH user 
+#'
+#' @param user :user
+#' @param is_evaluating : indicating if the user is selected to evaluate or not  
+#' @param umat : utility matrix |users|x|items|
+#' @param prop_items set of proposed items in the group
+#' @param cur_prop current proposal - information of user and item
+#' @param type : conflict resolution style in the group
+#' @param prob_BLD baseline probability of BLD
+#' @param bins 
+#' @param b 
+
+#' @return
+#' @export: list best items, liked items and disliked items (BLD items)
+#'
+#' @examples
+generate_feedback <- function(user, is_evaluating, umat, prop_items, cur_prop, type, prob_BLD, bins, b){
+  u_feedback <- list(best=NULL,like=NULL,dislike=NULL)
+  if(is_evaluating){
+    user_util_vals <- umat[user,prop_items] #vector of utlity values
+    items_labels <- map(user_util_vals, generate_profiles, type, prob_BLD, bins, b) %>%
+      map(function(x){
+        sample(c("best","like","dislike"),1,prob=c(x[1],x[2],x[3]))
+      })
+    num_prop_items <- length(prop_items[prop_items!=0])
+    for(i in 1:num_prop_items){ 
+      if(user==cur_prop["user"] && prop_items[i]==cur_prop["prop_item"]){  #implicit feedback, proposed item -> best
+        u_feedback$best<-c(u_feedback$best,prop_items[i])
+      }else{
+        if(items_labels[[i]]=="best"){
+          u_feedback$best<-c(u_feedback$best,prop_items[i])
+        }else if(items_labels[[i]]=="like"){
+          u_feedback$like<-c(u_feedback$like,prop_items[i])
+        }else{
+          u_feedback$dislike<-c(u_feedback$dislike,prop_items[i])
+        }
+      }
+    }
+  }
+  return (u_feedback)
 }
