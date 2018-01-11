@@ -2,32 +2,36 @@ source("generate_group.R")
 source("generate_profiles.R")
 source("infer_constraints.R")
 source("recommend_items.R")
+source("compute_loss.R")
 #input: rating matrix (rmat), item feature matrix (fmat), utlity matrix (umat), 
 #user profiles (profiles), group sizes (sizes)
 #Ctrl+Alt+Shift+R
+
 #' Title
 #'
-#' @param rmat (rating matrix)
-#' @param fmat 
-#' @param umat 
-#' @param profiles 
-#' @param sizes 
-#' @param prob_feedback 
-#' @param prob_BLD 
-#' @param num_trials 
-#' @param num_cyles 
-#' @param gamma 
-#' @param b 
-#' @param topk 
-#' @param bins 
+#' @param rmat rating matrix
+#' @param fmat item-feature matrix
+#' @param umat utility matrix (users x items)
+#' @param profiles WU
+#' @param sizes group size
+#' @param prob_feedback probability that a group member will be selected to give an evaluation
+#' @param prob_BLD probability that the user will give B, L or D
+#' @param num_trials number of trials (number of experimental runs) 
+#' @param num_cycles number of discussion cycles
+#' @param gamma : the parameter used to control the level of assertiveness (higher gamma, higher prob feedback...)
+#' @param b : param used in the function to control the cooperativeness 
+#' @param topk : 
+#' @param bins : 
 #'
-#' @return
+#' @return personal loss in comparison with group choice
 #' @export
 #'
 #' @examples
 run_exp <- function(rmat, fmat, umat, profiles, sizes, prob_feedback, prob_BLD, num_trials, num_cycles, gamma, b, topk, bins){
   recom_idxs <- list(NULL)
+  loss <- matrix(0,length(sizes),num_cycles)
   for(size in sizes){
+    #size <- 2
     #load group information 
     file_name_01 <- paste0("data/group",size,".txt")
     file_name_02 <- paste0("data/group_style",size,".txt")
@@ -39,8 +43,10 @@ run_exp <- function(rmat, fmat, umat, profiles, sizes, prob_feedback, prob_BLD, 
     }
     group_members <- read.table(file_name_01)
     group_members <- as.matrix(group_members) 
-    group_styles <- read.table(file_name_02)
-    group_styles <- as.matrix(group_styles) 
+    #TODO: with different group style
+    group_styles <- read.table(file_name_02) #Mixed
+    group_styles <- as.matrix(group_styles)
+    # group_styles <- matrix(1, nrow=num_trials, ncol = size) #compromise
     
     for(cur in 1:num_trials){ # repeat 100 times
       current_group <- group_members[cur,]
@@ -48,9 +54,10 @@ run_exp <- function(rmat, fmat, umat, profiles, sizes, prob_feedback, prob_BLD, 
       res <- generate_propose_eval_prob(current_group,current_style,prob_feedback,gamma)
       prob_prop_new <- res[1,]
       prob_eval_new <- res[2,]
-      prop_items <- vector("integer",10) #list containing all proposed items of group (max=10)
       num_prop_items <- 0
+      who_what_prop <- data.frame(user=c(0),prop_item=c(0))
       WU_updated <- list(NULL)
+      tmp_loss <- rep(-1,num_cycles)
       
       for(t in 1:num_cycles){ #interaction length
         if(t==1){
@@ -78,28 +85,28 @@ run_exp <- function(rmat, fmat, umat, profiles, sizes, prob_feedback, prob_BLD, 
         #2. item proposed to the group
         iidx_sorted <- order(umat[user_proposed,],decreasing = TRUE)
         iidx_prop <- 1
+        prop_items <- who_what_prop[who_what_prop!=0,"prop_item"]
         while(iidx_sorted[iidx_prop] %in% prop_items){ #if the item (iidx_prop) is already proposed
           iidx_prop <- iidx_prop + 1 #get next item
         }
         num_prop_items <- num_prop_items + 1
-        prop_items[num_prop_items]<-iidx_sorted[iidx_prop]
-        who_what_prop <- c(user_proposed, iidx_sorted[iidx_prop])
-        names(who_what_prop) <- c("user","prop_item")
+        if(num_prop_items==1){
+          who_what_prop[num_prop_items,] <- c(user_proposed, iidx_sorted[iidx_prop])
+        }else{
+          who_what_prop <- rbind(who_what_prop,c(user_proposed, iidx_sorted[iidx_prop]))
+        }
         
         #3. how the others evaluate the proposed item, including the one proposing items
-        eval_users <- append(idx_evals,idx_selected,0) #containing index of users
+        for(uidx in idx_evals){
+          who_what_prop <- rbind(who_what_prop,c(current_group[uidx],0))
+        }
         inferred_constraints <-list(NULL)
         group_feedback <- list(NULL)
         for(uidx in 1:length(current_group)){
-          is_eval <- FALSE
-          #if user has at least 1 evaluation
-          if(is.element(uidx,eval_users)){
-            is_eval <- TRUE
-          }
           conflict_type <- current_style[uidx]
           u <- current_group[uidx]
           #get feedback 
-          group_feedback[[uidx]] <- generate_feedback(u,is_eval,umat,prop_items,who_what_prop,conflict_type,prob_BLD,bins,b)
+          group_feedback[[uidx]] <- generate_feedback(u,umat,who_what_prop,conflict_type,prob_BLD,bins,b,NULL)
           inferred_constraints[[uidx]] <- infer_constraints(fmat,group_feedback[[uidx]],num_prop_items)
           
         }#end-for uidx in members 
@@ -108,10 +115,38 @@ run_exp <- function(rmat, fmat, umat, profiles, sizes, prob_feedback, prob_BLD, 
         score <- fmat%*%as.matrix(rec$wg)
         recom_idx <- seq_along(items)[order(score,decreasing =TRUE)][1:topk]  
         recom_idxs[[size-1]] <- recom_idx
+        
+        #4. computing loss
+        idx <- 1
+        group_choice <- NULL
+        count <- 0
+        while(count!=length(current_group) && idx<=topk){
+          group_choice <- recom_idx[idx]
+          #if idx is not a satisfactory solution to all the members
+          for(uidx in 1:length(current_group)){
+            conflict_type <- current_style[uidx]
+            u <- current_group[uidx]
+            group_feedback[[uidx]] <- generate_feedback(u,umat,who_what_prop,conflict_type,prob_BLD,bins,b,recom_idx)
+            if(is.element(group_choice,group_feedback[[uidx]]$best) || 
+               is.element(group_choice,group_feedback[[uidx]]$like)){
+              count <- count + 1
+            }else{
+              break
+            }
+          }
+          idx <- idx + 1
+        }
+        if(!is.null(group_choice)){
+          tmp_loss[t] <- compute_loss(current_group,umat,group_choice)
+        }
       }#end-for interaction length
+      loss[size-1,] <- loss[size-1,] + tmp_loss
     }#end-for trials (validations)
   }#end-for group size
-  names(recom_idxs) <- sizes
-  return (recom_idxs)
+  loss <- loss / num_trials
+  return (loss)
+  # names(recom_idxs) <- sizes
+  # return (recom_idxs)
 }
+
 

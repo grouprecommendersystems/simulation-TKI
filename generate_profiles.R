@@ -50,20 +50,27 @@ generate_profiles <- function(x, type, prob_BLD, bins, b){
   x1 <- probs["dislike"]
   x2 <- probs["dislike"] + probs["like"]
   x3 <- probs["dislike"] + probs["like"] + probs["best"]
-  if(style_name=="compete" || style_name=="avoid"){
-    if(b>1 && b!=0){
-      b <- 1/b
+  if(style_name=="compromise"){
+    pd <- probs["dislike"]
+    pl <- probs["like"]
+    pb <- probs["best"]
+  }else{ #not the baseline
+    if(style_name=="compete" || style_name=="avoid"){
+      if(b>1 && b!=0){
+        b <- 1/b
+      }
+    }else if(style_name=="accommodate" || style_name=="collaborate"){
+      if(b<1 && b!=0){
+        b <- 1/b
+      }
     }
-  }else if(style_name=="accommodate" || style_name=="collaborate"){
-    if(b<1 && b!=0){
-      b <- 1/b
-    }
+    y1 <- (b^(x1)-1)/(b-1)
+    pd <- y1
+    y2 <- ((b^(x2)-1)/(b-1))
+    pb <- 1 - y2
+    pl <- y2 - y1
   }
-  y1 <- (b^(x1)-1)/(b-1)
-  pd <- y1
-  y2 <- ((b^(x2)-1)/(b-1))
-  pb <- 1 - y2
-  pl <- y2 - y1
+  
   names(pb) <- "best"
   names(pl) <- "like"
   names(pd) <- "dislike"
@@ -71,43 +78,60 @@ generate_profiles <- function(x, type, prob_BLD, bins, b){
   return (c(pb,pl,pd))
 }
 
-#' Title: generating feedback for EACH user 
+
+# actions_list<- who_what_prop
+#' Title
 #'
-#' @param user :user
-#' @param is_evaluating : indicating if the user is selected to evaluate or not  
-#' @param umat : utility matrix |users|x|items|
-#' @param prop_items set of proposed items in the group
-#' @param cur_prop current proposal - information of user and item
-#' @param type : conflict resolution style in the group
-#' @param prob_BLD baseline probability of BLD
+#' @param user 
+#' @param umat utilty matrix
+#' @param actions_list data frame in which a row is associated with a pair
+#'  (who proposes and what is proposed). If what is proposed = 0 that means, the user just evaluates
+#'  the item not propose
+#' @param type : 5 conflict resolution types
+#' @param prob_BLD : probability giving B, L, D feedback
 #' @param bins 
 #' @param b 
-
-#' @return
-#' @export: list best items, liked items and disliked items (BLD items)
+#' @param group_recoms: group recommendations 
+#'
+#' @return list containing items labeled B, L and D
+#' @export
 #'
 #' @examples
-generate_feedback <- function(user, is_evaluating, umat, prop_items, cur_prop, type, prob_BLD, bins, b){
+generate_feedback <- function(user, umat, actions_list, type, prob_BLD, bins, b, group_recoms){
   u_feedback <- list(best=NULL,like=NULL,dislike=NULL)
-  if(is_evaluating){
+  
+  if(is.null(group_recoms)){
+    prop_items <- actions_list[actions_list[,"prop_item"]!=0,"prop_item"]  
+  }else{
+    prop_items <- group_recoms
+  }
+  
+  if(is.element(user,actions_list[,"user"]) || !is.null(group_recoms)){
     user_util_vals <- umat[user,prop_items] #vector of utlity values
     items_labels <- map(user_util_vals, generate_profiles, type, prob_BLD, bins, b) %>%
       map(function(x){
         sample(c("best","like","dislike"),1,prob=c(x[1],x[2],x[3]))
       })
-    num_prop_items <- length(prop_items[prop_items!=0])
-    for(i in 1:num_prop_items){ 
-      if(user==cur_prop["user"] && prop_items[i]==cur_prop["prop_item"]){  #implicit feedback, proposed item -> best
-        u_feedback$best<-c(u_feedback$best,prop_items[i])
-      }else{
-        if(items_labels[[i]]=="best"){
-          u_feedback$best<-c(u_feedback$best,prop_items[i])
-        }else if(items_labels[[i]]=="like"){
-          u_feedback$like<-c(u_feedback$like,prop_items[i])
-        }else{
-          u_feedback$dislike<-c(u_feedback$dislike,prop_items[i])
+    names(items_labels) <- prop_items
+    for(item in prop_items){
+      i <- which(actions_list[,"prop_item"]==item)
+      if(length(i) > 0){
+        if(user==actions_list[i,"user"]){  #implicit feedback, proposed item -> best
+          u_feedback$best<-c(u_feedback$best,item)
         }
       }
+      tmp <- items_labels[names(items_labels)==item]
+      if(tmp[[1]]=="best"){
+        if(!is.element(item,u_feedback$best))
+          u_feedback$best<-c(u_feedback$best,item)
+      }else if(tmp[[1]]=="like"){
+        if(!is.element(item,u_feedback$like))
+          u_feedback$like<-c(u_feedback$like,item)
+      }else{
+        if(!is.element(item,u_feedback$dislike))
+          u_feedback$dislike<-c(u_feedback$dislike,item)
+      }
+      
     }
   }
   return (u_feedback)

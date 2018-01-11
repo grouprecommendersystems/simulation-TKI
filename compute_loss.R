@@ -1,11 +1,9 @@
-compute_loss <- function(group, group_feedback, group_recoms){
-  for(i in group_recoms){
-    
-  }
+compute_loss <- function(group, umat, gchoice){
+  personal <- group %>%
+    map_dbl(function(x){
+      iidx_sorted <- order(umat[x,],decreasing = TRUE)
+      umat[x,iidx_sorted[1]]
+    })
+  res <- abs(personal-umat[group,gchoice])
+  return (mean(res))
 }
-a <- list(c(1:3))
-group_feedback[[3]][["best"]]
-class(group_feedback[[3]][["best"]])
-recom_idx
-u <- 11
-generate_feedback(u,is_eval,umat,prop_items,who_what_prop,conflict_type,prob_BLD,bins,b)

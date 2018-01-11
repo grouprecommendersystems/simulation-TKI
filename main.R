@@ -58,13 +58,13 @@ pf <- init_eval_prob(group_ratings)
 pbld <- init_BLD_prob(group_ratings,utility_matrix,bins)
 
 #experiments
-source("run_experiment.R")
 trials <- 100 # run 100 trials for each experiment
-num_cycles <- 2
+num_cycles <- 5
 gamma <- 0.1
 b <- 10
 topk <- 20
 group_sizes <- 2:5
+source("run_experiment.R")
 recom <- run_exp(ratings,items,utility_matrix,WU,group_sizes,pf,pbld,trials,num_cycles,gamma,b,topk,bins)
 
 #test
@@ -76,7 +76,7 @@ sizes <- group_sizes
 prob_feedback <- pf
 prob_BLD <- pbld
 num_trials <- trials
-num_cyles <- num_cycles
+num_cycles <- num_cycles
 gamma <- gamma
 b <- b
 topk <- topk
