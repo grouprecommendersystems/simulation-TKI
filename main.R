@@ -60,25 +60,33 @@ pbld <- init_BLD_prob(group_ratings,utility_matrix,bins)
 #experiments
 trials <- 100 # run 100 trials for each experiment
 num_cycles <- 5
-gamma <- 0.1
-b <- 10
+gamma <- 0.2
+b <- 30
 topk <- 20
-group_sizes <- 2:5
+group_sizes <- 2:5 
 source("run_experiment.R")
-recom <- run_exp(ratings,items,utility_matrix,WU,group_sizes,pf,pbld,trials,num_cycles,gamma,b,topk,bins)
+styles <- c("compromise","compete","accommodate","avoid","collaborate")
+for(i in 1:5){
+  group_type <- styles[i]
+  recom <- run_exp(ratings, items, utility_matrix, WU, group_sizes, group_type, pf, pbld, trials, num_cycles, gamma, b, topk, bins)  
+}
 
-#test
-rmat <- ratings
-fmat <- items
-umat <- utility_matrix
-profiles <- WU
-sizes <- group_sizes
-prob_feedback <- pf
-prob_BLD <- pbld
-num_trials <- trials
-num_cycles <- num_cycles
-gamma <- gamma
-b <- b
-topk <- topk
-bins <- bins
+#compute system time
+#system.time(run_exp(ratings,items,utility_matrix,WU,group_sizes,group_type,pf,pbld,trials,num_cycles,gamma,b,topk,bins))
 
+
+#------test------------
+# rmat <- ratings
+# fmat <- items
+# umat <- utility_matrix
+# profiles <- WU
+# sizes <- group_sizes
+# prob_feedback <- pf
+# prob_BLD <- pbld
+# num_trials <- trials
+# num_cycles <- num_cycles
+# gamma <- gamma
+# b <- b
+# topk <- topk
+# bins <- bins
+# gname <- group_type

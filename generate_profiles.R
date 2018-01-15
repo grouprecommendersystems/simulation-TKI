@@ -2,8 +2,14 @@
 #output: style_name
 get_style_name <- function(code){
   styles <- data.frame(name=c("compromise","compete","accommodate","avoid","collaborate"),id=1:5)
-  return (as.character(styles[code,"name"]))
+  if(is.numeric(code)){
+    return (as.character(styles[code,"name"]))  
+  }
+  if(is.character(code)){
+    return (styles[styles[,"name"]==code,"id"])
+  }
 }
+
 # input: groups (vector of members)
 #       type (compromising, competing, accommodating, avoiding, collaborating)
 #       prob_eval, gamma
@@ -23,8 +29,15 @@ generate_propose_eval_prob <- function(group, group_type, prob_eval, gamma){
       pp <- prob_prop + gamma
       pf <- prob_eval + gamma
     }else if(x=="accommodate" || x=="avoid"){
-      pp <- prob_prop - gamma
-      pf <- prob_eval - gamma
+      # ensure that pp and pf is not zero or negative
+      if(gamma < prob_prop && gamma <prob_eval){
+        pp <- prob_prop - gamma
+        pf <- prob_eval - gamma  
+      }else{
+        pp <- 0.15
+        pf <- 0.2
+      }
+      
     }
     return (c(pp,pf))
   })

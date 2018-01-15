@@ -9,29 +9,31 @@ source("compute_loss.R")
 
 #' Title
 #'
-#' @param rmat rating matrix
-#' @param fmat item-feature matrix
-#' @param umat utility matrix (users x items)
-#' @param profiles WU
-#' @param sizes group size
-#' @param prob_feedback probability that a group member will be selected to give an evaluation
-#' @param prob_BLD probability that the user will give B, L or D
-#' @param num_trials number of trials (number of experimental runs) 
-#' @param num_cycles number of discussion cycles
-#' @param gamma : the parameter used to control the level of assertiveness (higher gamma, higher prob feedback...)
-#' @param b : param used in the function to control the cooperativeness 
-#' @param topk : 
-#' @param bins : 
+#' @param rmat 
+#' @param fmat 
+#' @param umat 
+#' @param profiles 
+#' @param sizes 
+#' @param gname 'one of 5 conflict resolution types
+#' @param prob_feedback 
+#' @param prob_BLD 
+#' @param num_trials 
+#' @param num_cycles 
+#' @param gamma 
+#' @param b 
+#' @param topk 
+#' @param bins 
 #'
-#' @return personal loss in comparison with group choice
+#' @return
 #' @export
 #'
 #' @examples
-run_exp <- function(rmat, fmat, umat, profiles, sizes, prob_feedback, prob_BLD, num_trials, num_cycles, gamma, b, topk, bins){
+run_exp <- function(rmat, fmat, umat, profiles, sizes, gname, prob_feedback, prob_BLD, num_trials, num_cycles, gamma, b, topk, bins){
   recom_idxs <- list(NULL)
   loss <- matrix(0,length(sizes),num_cycles)
+  loss_2  <- list() # 5 is the number of conflict types
   for(size in sizes){
-    #size <- 2
+    #size <- 5
     #load group information 
     file_name_01 <- paste0("data/group",size,".txt")
     file_name_02 <- paste0("data/group_style",size,".txt")
@@ -44,9 +46,13 @@ run_exp <- function(rmat, fmat, umat, profiles, sizes, prob_feedback, prob_BLD, 
     group_members <- read.table(file_name_01)
     group_members <- as.matrix(group_members) 
     #TODO: with different group style
-    group_styles <- read.table(file_name_02) #Mixed
-    group_styles <- as.matrix(group_styles)
-    # group_styles <- matrix(1, nrow=num_trials, ncol = size) #compromise
+    if(group_type=="mixed"){
+      group_styles <- read.table(file_name_02) #Mixed
+      group_styles <- as.matrix(group_styles)  
+    }else{
+      code <- get_style_name(gname)
+      group_styles <- matrix(code, nrow=num_trials, ncol = size)
+    }
     
     for(cur in 1:num_trials){ # repeat 100 times
       current_group <- group_members[cur,]
@@ -58,6 +64,7 @@ run_exp <- function(rmat, fmat, umat, profiles, sizes, prob_feedback, prob_BLD, 
       who_what_prop <- data.frame(user=c(0),prop_item=c(0))
       WU_updated <- list(NULL)
       tmp_loss <- rep(-1,num_cycles)
+      tmp_loss_2 <- matrix(0, nrow=num_trials, ncol=size)
       
       for(t in 1:num_cycles){ #interaction length
         if(t==1){
@@ -137,14 +144,27 @@ run_exp <- function(rmat, fmat, umat, profiles, sizes, prob_feedback, prob_BLD, 
           idx <- idx + 1
         }
         if(!is.null(group_choice)){
-          tmp_loss[t] <- compute_loss(current_group,umat,group_choice)
+          if(gname!="mixed"){
+            tmp_loss[t] <- compute_loss_avg(current_group,umat,group_choice)  
+          }else{
+            tmp_loss_2[t,] <- compute_loss_2(current_group,umat,group_choice)  
+          }
         }
       }#end-for interaction length
-      loss[size-1,] <- loss[size-1,] + tmp_loss
+      if(gname!="mixed"){
+        loss[size-1,] <- loss[size-1,] + tmp_loss  
+      }else{
+        for(s in 1:5){
+          loss_2[[s]] <-  tmp_loss_2[current_style==s] #TODO: re-check 
+        }  
+      }
+      
     }#end-for trials (validations)
   }#end-for group size
   loss <- loss / num_trials
-  return (loss)
+  fname <- paste0("results/loss_type_",gname,"_cycles_", num_cycles, "_gamma_", gamma, "_b_", b, ".txt", sep = "")
+  write.table(loss,file = fname)
+  #return (loss)
   # names(recom_idxs) <- sizes
   # return (recom_idxs)
 }
