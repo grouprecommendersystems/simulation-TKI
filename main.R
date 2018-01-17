@@ -64,13 +64,16 @@ gamma <- 0.2
 b <- 30
 topk <- 20
 group_sizes <- 2:5 
-source("run_experiment.R")
 styles <- c("compromise","compete","accommodate","avoid","collaborate")
+source("run_experiment.R")
+
 for(i in 1:5){
   group_type <- styles[i]
   recom <- run_exp(ratings, items, utility_matrix, WU, group_sizes, group_type, pf, pbld, trials, num_cycles, gamma, b, topk, bins)  
 }
-
+#Mixe
+group_type <- "mixed"
+recom <- run_exp(ratings, items, utility_matrix, WU, group_sizes, group_type, pf, pbld, trials, num_cycles, gamma, b, topk, bins)  
 #compute system time
 #system.time(run_exp(ratings,items,utility_matrix,WU,group_sizes,group_type,pf,pbld,trials,num_cycles,gamma,b,topk,bins))
 

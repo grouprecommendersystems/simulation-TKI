@@ -31,7 +31,7 @@ source("compute_loss.R")
 run_exp <- function(rmat, fmat, umat, profiles, sizes, gname, prob_feedback, prob_BLD, num_trials, num_cycles, gamma, b, topk, bins){
   recom_idxs <- list(NULL)
   loss <- matrix(0,length(sizes),num_cycles)
-  loss_2  <- list() # 5 is the number of conflict types
+  loss_mixed <- list()
   for(size in sizes){
     #size <- 5
     #load group information 
@@ -48,11 +48,13 @@ run_exp <- function(rmat, fmat, umat, profiles, sizes, gname, prob_feedback, pro
     #TODO: with different group style
     if(group_type=="mixed"){
       group_styles <- read.table(file_name_02) #Mixed
-      group_styles <- as.matrix(group_styles)  
+      group_styles <- as.matrix(group_styles)
     }else{
       code <- get_style_name(gname)
       group_styles <- matrix(code, nrow=num_trials, ncol = size)
     }
+    count_mixed <- matrix(0, nrow=num_cycles, ncol=5) #ncol is number of resolution styles
+    tmp_loss_mixed <- matrix(0, nrow=num_cycles, ncol=5) #ncol is number of resolution styles
     
     for(cur in 1:num_trials){ # repeat 100 times
       current_group <- group_members[cur,]
@@ -64,7 +66,6 @@ run_exp <- function(rmat, fmat, umat, profiles, sizes, gname, prob_feedback, pro
       who_what_prop <- data.frame(user=c(0),prop_item=c(0))
       WU_updated <- list(NULL)
       tmp_loss <- rep(-1,num_cycles)
-      tmp_loss_2 <- matrix(0, nrow=num_trials, ncol=size)
       
       for(t in 1:num_cycles){ #interaction length
         if(t==1){
@@ -147,23 +148,34 @@ run_exp <- function(rmat, fmat, umat, profiles, sizes, gname, prob_feedback, pro
           if(gname!="mixed"){
             tmp_loss[t] <- compute_loss_avg(current_group,umat,group_choice)  
           }else{
-            tmp_loss_2[t,] <- compute_loss_2(current_group,umat,group_choice)  
+            tmp <- compute_loss_2(current_group,umat,group_choice)
+            for(s in 1:5){
+              if(sum(current_style==s)>0){
+                tmp_loss_mixed[t,s] <- tmp_loss_mixed[t,s] + sum(tmp[current_style==s])
+                count_mixed[t,s] <- count_mixed[t,s] + sum(current_style==s)  
+              }
+            }
           }
         }
       }#end-for interaction length
       if(gname!="mixed"){
         loss[size-1,] <- loss[size-1,] + tmp_loss  
-      }else{
-        for(s in 1:5){
-          loss_2[[s]] <-  tmp_loss_2[current_style==s] #TODO: re-check 
-        }  
       }
       
     }#end-for trials (validations)
+    if(gname=="mixed"){
+      count_mixed[count_mixed==0]<-1
+      loss_mixed[[size-1]] <- tmp_loss_mixed/count_mixed 
+    }
   }#end-for group size
-  loss <- loss / num_trials
   fname <- paste0("results/loss_type_",gname,"_cycles_", num_cycles, "_gamma_", gamma, "_b_", b, ".txt", sep = "")
-  write.table(loss,file = fname)
+  if(gname!="mixed"){
+    loss <- loss / num_trials
+    write.table(loss,file = fname)
+  }else{
+    names(loss_mixed) <- sizes
+    write.table(loss_mixed,file = fname)
+  }
   #return (loss)
   # names(recom_idxs) <- sizes
   # return (recom_idxs)

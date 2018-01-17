@@ -17,9 +17,12 @@ get_style_name <- function(code){
 generate_propose_eval_prob <- function(group, group_type, prob_eval, gamma){
   # group <-current_group
   # group_type <- current_style
-  prob_prop <- 1/length(group)
   # gamma <- 0.1
   # prob_eval <- 0.5
+  
+  prob_prop <- 1/length(group)
+  #TODO: test with fixed value (all members are independent)
+  #prob_prop <- 0.7
   style_names <- get_style_name(group_type)
   res <- sapply(style_names,function(x){
     if(x=="compromise"){
@@ -41,7 +44,8 @@ generate_propose_eval_prob <- function(group, group_type, prob_eval, gamma){
     }
     return (c(pp,pf))
   })
-  #normalized: to sum to 1 (TODO: check if it is necessary to do this)
+  #normalized: to sum to 1 
+  #TODO: check if it is necessary to do this) ON & OFF
   res[1,] <- res[1,]/sum(res[1,])
   res[2,] <- res[2,]/sum(res[2,])
   
