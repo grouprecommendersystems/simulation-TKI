@@ -5,6 +5,7 @@ compute_loss_avg <- function(group, umat, gchoice){
       umat[x,iidx_sorted[1]]
     })
   res <- abs(personal-umat[group,gchoice])
+  #res <- personal-umat[group,gchoice]
   return (mean(res))
 }
 
@@ -16,5 +17,6 @@ compute_loss_2 <- function(group, umat, gchoice){
       umat[x,iidx_sorted[1]]
     })
   res <- abs(personal-umat[group,gchoice])
+  #res <- personal-umat[group,gchoice]
   return (res)
 }

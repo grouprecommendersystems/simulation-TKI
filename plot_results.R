@@ -1,51 +1,41 @@
 library(ggplot2) 
 library(reshape2)
 library(gridExtra)
-score_types <- matrix(0,nrow=(length(group_sizes)*5),ncol=num_cycles)
-j_start <- 0
-for(i in 1:5){
-  group_type <- styles[i]
-  fname <- paste0("results/loss_type_",group_type,"_cycles_", num_cycles, "_gamma_", gamma, "_b_", b, ".txt", sep = "")
-  j <- j_start + 1
-  j_start <- j + 3
-  score_types[j:j_start,] <- as.matrix(read.table(fname))
-  dim(as.matrix(read.table(fname)))
-}
-
-p <- list(NULL)
-for(size in 2:5){
-  p[[size-1]] <- plot_data(size,score_types,num_cycles)
-  show(p[[size-1]]) 
-  ggsave(p[[size-1]],filename=paste0("results/loss_g",size,".png",sep=""))
-}
-
-plot_data <- function(size, scores, num_cycles){
-  i1 <- size - 1 #size is 2, or 3,..or 5
-  i2 <- i1 + 4
-  i3 <- i2 + 4
-  i4 <- i3 + 4
-  i5 <- i4 + 4
+#scores <- score_mixed
+plot_data <- function(size, scores, num_cycles, is_homogeneous){
+  if(is_homogeneous){
+    idxs <- seq(from = size-1, to = dim(scores)[1], by=dim(scores)[1]/5) #5 is 5 styles
+  }else{
+    tmp <- (size-1)*5
+    idxs <- (tmp-4):tmp
+  }
   cycles <- 1:num_cycles
   mycolors <-c("red","blue","sea green","orange","purple")
   myshapes <-15:19
-  mylabels <- list("compromise (b.thuong)","compete (dau tranh)", "accommodate (nhuong bo)",
-                   "avoid (ne tranh)", "collaborate (hop tac)")
+  mylabels <- list("compromise","compete", "accommodate",
+                   "avoid", "collaborate")
   #"compromise","compete","accommodate","avoid","collaborate"
-  df <- data.frame(cycles = 1:num_cycles, compromise = scores[i1,], 
-                      compete = scores[i2,], 
-                      accommodate =scores[i3,],
-                      avoid = scores[i4,],
-                      collaborate = scores[i5,])
+  df <- data.frame(cycles = 1:num_cycles, compromise = scores[idxs[1],], 
+                   compete = scores[idxs[2],], 
+                   accommodate =scores[idxs[3],],
+                   avoid = scores[idxs[4],],
+                   collaborate = scores[idxs[5],])
   df2 <- melt(data = df, id.vars = "cycles", variable.name = "type", value.name = "loss")
   
-  if(size==2){
-    lim <- c(0.02,0.03)
-  }else if (size==3){
-    lim <- c(0.025,0.035)
-  }else if (size==4 || size==5){
-    lim <- c(0.04,0.052)
+  # if(size==2){
+  #   lim <- c(0.02,0.03)
+  # }else if (size==3){
+  #   lim <- c(0.025,0.035)
+  # }else if (size==4 || size==5){
+  #   lim <- c(0.04,0.052)
+  # }
+  
+  if(is_homogeneous){
+    title <- paste0("Groups of size ",size," (same style per group)")
+  }else{
+    title <- paste0("Groups of size ",size," (mixed styles per group)")
   }
-
+  
   plot <- ggplot(data=df2, aes(x=cycles, y=loss, group=type, colour=type)) +
     geom_line(aes(linetype=type), # Line type depends on size
               size = 0.5,show.legend = FALSE) +       # Thicker line
@@ -59,22 +49,39 @@ plot_data <- function(size, scores, num_cycles){
     xlab("# of interaction cycles") + 
     ylab("Average utility loss")+
     # ylim(lim)+
-    ggtitle(paste0("Groups of size ",size))
+    ggtitle(title)
   return (plot)
 }
 
-# plot mixed results
+#Plot 1: Homogeneous groups
+score_types <- matrix(0,nrow=(length(group_sizes)*5),ncol=num_cycles)
+j_start <- 0
+for(i in 1:5){
+  group_type <- styles[i]
+  fname <- paste0("results/loss_type_",group_type,"_cycles_", num_cycles, "_gamma_", gamma, "_b_", b, ".txt", sep = "")
+  j <- j_start + 1
+  j_start <- j + 3
+  score_types[j:j_start,] <- as.matrix(read.table(fname))
+  dim(as.matrix(read.table(fname)))
+}
+p <- list(NULL)
+for(size in group_sizes){
+  p[[size-1]] <- plot_data(size,score_types,num_cycles,TRUE)
+  show(p[[size-1]]) 
+  ggsave(p[[size-1]],filename=paste0("results/loss_g",size,".png",sep=""))
+}
+
+
+#Plot: Heterogeneous (mixed) results
 score_mixed <- read.table(paste0("results/loss_type_","mixed","_cycles_", num_cycles, "_gamma_", gamma, "_b_", b, ".txt", sep = ""))
 score_mixed <- as.matrix(score_mixed)
 score_mixed <- t(score_mixed)
 p <- list(NULL)
-for(size in 2:5){
-  p[[size-1]] <- plot_data(size,score_mixed,num_cycles)
+for(size in group_sizes){
+  p[[size-1]] <- plot_data(size,score_mixed,num_cycles,FALSE)
   show(p[[size-1]]) 
-  ggsave(p[[size-1]],filename=paste0("results/loss_mixed_g",size,".png",sep=""))
+  #ggsave(p[[size-1]],filename=paste0("results/loss_mixed_g",size,".png",sep=""))
 }
-
-
 
 
 #combine

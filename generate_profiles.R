@@ -28,19 +28,31 @@ generate_propose_eval_prob <- function(group, group_type, prob_eval, gamma){
     if(x=="compromise"){
       pp <- prob_prop
       pf <- prob_eval
-    }else if(x=="compete" || x=="collaborate"){
+    }else if(x=="compete" ){
       pp <- prob_prop + gamma
       pf <- prob_eval + gamma
-    }else if(x=="accommodate" || x=="avoid"){
-      # ensure that pp and pf is not zero or negative
+      # pp <- 1
+      # pf <- 1
+    }else if(x=="collaborate"){
+      pp <- prob_prop + runif(1,gamma-0.05,gamma)
+      pf <- prob_eval + runif(1,gamma-0.05,gamma)
+    }else if(x=="accommodate"){
+      #ensure that pp and pf is not zero or negative
       if(gamma < prob_prop && gamma <prob_eval){
         pp <- prob_prop - gamma
-        pf <- prob_eval - gamma  
+        pf <- prob_eval - gamma
       }else{
-        pp <- 0.15
-        pf <- 0.2
+        pp <- prob_prop
+        pf <- prob_eval
       }
-      
+    }else if(x=="avoid"){
+      if(gamma < prob_prop && gamma <prob_eval){
+        pp <- prob_prop - runif(1,gamma-0.05,gamma)
+        pf <- prob_eval - runif(1,gamma-0.05,gamma)  
+      }else{
+        pp <- prob_prop
+        pf <- prob_eval
+      }
     }
     return (c(pp,pf))
   })
@@ -72,11 +84,21 @@ generate_profiles <- function(x, type, prob_BLD, bins, b){
     pl <- probs["like"]
     pb <- probs["best"]
   }else{ #not the baseline
-    if(style_name=="compete" || style_name=="avoid"){
+    if(style_name=="compete" ){
+      if(b>1 && b!=0){
+        #b <- 1/(b+5)
+        b <- 1/(b)
+      }
+    }else if (style_name=="avoid"){
       if(b>1 && b!=0){
         b <- 1/b
       }
-    }else if(style_name=="accommodate" || style_name=="collaborate"){
+    }else if (style_name=="accommodate"){
+      if(b<1 && b!=0){
+        #b <- 1/(b-0.05)
+        b <- 1/(b)
+      }
+    }else if(style_name=="collaborate"){
       if(b<1 && b!=0){
         b <- 1/b
       }

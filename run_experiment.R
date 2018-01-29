@@ -32,11 +32,12 @@ run_exp <- function(rmat, fmat, umat, profiles, sizes, gname, prob_feedback, pro
   recom_idxs <- list(NULL)
   loss <- matrix(0,length(sizes),num_cycles)
   loss_mixed <- list()
+  idx_size <- 1
   for(size in sizes){
     #size <- 5
-    #load group information 
-    file_name_01 <- paste0("data/group",size,".txt")
-    file_name_02 <- paste0("data/group_style",size,".txt")
+    #load group information
+    file_name_01 <- paste0("data/group",size,"_trial",num_trials,".txt")
+    file_name_02 <- paste0("data/group_style",size,"_trial",num_trials,".txt")
     if(!file.exists(file_name_01)){
       generate_group(rmat,size,num_trials,file_name_01) #create random group member
     }
@@ -47,8 +48,10 @@ run_exp <- function(rmat, fmat, umat, profiles, sizes, gname, prob_feedback, pro
     group_members <- as.matrix(group_members) 
     #TODO: with different group style
     if(group_type=="mixed"){
-      group_styles <- read.table(file_name_02) #Mixed
-      group_styles <- as.matrix(group_styles)
+      # group_styles <- read.table(file_name_02) #Mixed
+      # group_styles <- as.matrix(group_styles)
+      #group_styles <- matrix(rep(c(2,1),size), nrow=num_trials, ncol = size, byrow = TRUE)
+      group_styles <- matrix(rep(c(1:5),size), nrow=num_trials, ncol = size, byrow = TRUE)
     }else{
       code <- get_style_name(gname)
       group_styles <- matrix(code, nrow=num_trials, ncol = size)
@@ -159,14 +162,16 @@ run_exp <- function(rmat, fmat, umat, profiles, sizes, gname, prob_feedback, pro
         }
       }#end-for interaction length
       if(gname!="mixed"){
-        loss[size-1,] <- loss[size-1,] + tmp_loss  
+        loss[idx_size,] <- loss[idx_size,] + tmp_loss  
       }
-      
+      #print(paste0("Finish validation ",cur))
     }#end-for trials (validations)
     if(gname=="mixed"){
       count_mixed[count_mixed==0]<-1
-      loss_mixed[[size-1]] <- tmp_loss_mixed/count_mixed 
+      loss_mixed[[idx_size]] <- tmp_loss_mixed/count_mixed 
     }
+    idx_size <- idx_size + 1
+    print(paste0("Finish group ",size))
   }#end-for group size
   fname <- paste0("results/loss_type_",gname,"_cycles_", num_cycles, "_gamma_", gamma, "_b_", b, ".txt", sep = "")
   if(gname!="mixed"){

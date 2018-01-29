@@ -59,7 +59,7 @@ pbld <- init_BLD_prob(group_ratings,utility_matrix,bins)
 
 #experiments
 trials <- 100 # run 100 trials for each experiment
-num_cycles <- 5
+num_cycles <- 7
 gamma <- 0.2
 b <- 30
 topk <- 20
@@ -71,7 +71,8 @@ for(i in 1:5){
   group_type <- styles[i]
   recom <- run_exp(ratings, items, utility_matrix, WU, group_sizes, group_type, pf, pbld, trials, num_cycles, gamma, b, topk, bins)  
 }
-#Mixe
+#Mixed
+source("run_experiment.R")
 group_type <- "mixed"
 recom <- run_exp(ratings, items, utility_matrix, WU, group_sizes, group_type, pf, pbld, trials, num_cycles, gamma, b, topk, bins)  
 #compute system time
