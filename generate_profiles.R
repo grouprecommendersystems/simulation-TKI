@@ -22,7 +22,8 @@ generate_propose_eval_prob <- function(group, group_type, prob_eval, gamma){
   
   prob_prop <- 1/length(group)
   #TODO: test with fixed value (all members are independent)
-  #prob_prop <- 0.7
+ #prob_prop <- 0.7
+  
   style_names <- get_style_name(group_type)
   res <- sapply(style_names,function(x){
     if(x=="compromise"){
@@ -42,24 +43,25 @@ generate_propose_eval_prob <- function(group, group_type, prob_eval, gamma){
         pp <- prob_prop - gamma
         pf <- prob_eval - gamma
       }else{
-        pp <- prob_prop
-        pf <- prob_eval
+        pp <- prob_prop - 0.05
+        pf <- prob_eval - 0.05
       }
     }else if(x=="avoid"){
       if(gamma < prob_prop && gamma <prob_eval){
         pp <- prob_prop - runif(1,gamma-0.05,gamma)
         pf <- prob_eval - runif(1,gamma-0.05,gamma)  
       }else{
-        pp <- prob_prop
-        pf <- prob_eval
+        pp <- prob_prop - 0.05
+        pf <- prob_eval - 0.05
       }
     }
     return (c(pp,pf))
   })
+  
   #normalized: to sum to 1 
   #TODO: check if it is necessary to do this) ON & OFF
-  res[1,] <- res[1,]/sum(res[1,])
-  res[2,] <- res[2,]/sum(res[2,])
+  # res[1,] <- res[1,]/sum(res[1,])
+  # res[2,] <- res[2,]/sum(res[2,])
   
   return (res)
 }

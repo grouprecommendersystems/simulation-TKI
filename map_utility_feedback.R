@@ -65,7 +65,7 @@ prob_bin_feedback <- function(x,bins){
   #rownames(result_df) <- bins[2:length(bins)]
   # rownames(result_df) <- c("(0,0.1]","(0.1,0.2]","(0.2,0.3]","(0.3,0.4]","(0.4,0.5]",
   #                          "(0.5,0.6]","(0.6,0.7]","(0.7,0.8]","(0.8,0.9]","(0.9,1]")
-   rownames(result_df) <- c("(0,0.2]","(0.2,0.4]","(0.4,1]")
+  rownames(result_df) <- c("(0,0.2]","(0.2,0.4]","(0.4,1]")
   colnames(result_df) <- c("best","like","dislike")
   
   return(result_df)

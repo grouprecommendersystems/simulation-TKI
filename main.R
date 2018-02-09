@@ -38,10 +38,11 @@ group_ratings[,1] <- item_idx
 items <- items[,-1]
 
 #execute feature selection code
-source("select_feature.R")
-items <- select_feature(items)
-items[items<0.05]<- 0
-items[items>=0.05]<- 1
+# source("select_feature.R")
+# items <- select_feature(items)
+# items[items<0.05]<- 0
+# items[items>=0.05]<- 1
+
 #initialize user profile
 source("initialize_utility.R")
 WU <- init_utility(ratings,group_ratings,items)
@@ -55,42 +56,60 @@ utility_matrix <- WU%*%t(items)
 source("initialize_probabilities.R")
 bins <- c(0,0.2,0.4,1)
 pf <- init_eval_prob(group_ratings)
-pbld <- init_BLD_prob(group_ratings,utility_matrix,bins)
+is_fixed <- TRUE  
+pbld <- init_BLD_prob(group_ratings,utility_matrix,bins,is_fixed)
+if(is_fixed){
+  mname <- "DETER"
+}else
+  mname <- "STOCH"
 
 #experiments
-trials <- 100 # run 100 trials for each experiment
-num_cycles <- 7
-gamma <- 0.2
-b <- 30
+trials <- 10 # run 100 trials for each experiment
+num_cycles <- 10
+gamma <- 0.3
+b <- 90
 topk <- 20
 group_sizes <- 2:5 
 styles <- c("compromise","compete","accommodate","avoid","collaborate")
-source("run_experiment.R")
 
+#Test case 1A
+source("run_experiment.R")
 for(i in 1:5){
   group_type <- styles[i]
-  recom <- run_exp(ratings, items, utility_matrix, WU, group_sizes, group_type, pf, pbld, trials, num_cycles, gamma, b, topk, bins)  
+  
+  path <- paste0("results/",mname,"_",group_type,"_cycles_", num_cycles, "_gamma_", gamma, "_b_", b,sep = "")
+  recom <- run_exp(ratings, items, utility_matrix, WU, group_sizes, group_type, pf, pbld, trials, num_cycles, gamma, b, topk, bins,path)  
 }
+
+#Test case 1B: Observe loss of each members instead of computing the average loss of all group members
+source("run_experiment_personal.R")
+for(i in 1:5){
+  group_type <- styles[i]
+  recom <- run_exp_personal(ratings, items, utility_matrix, WU, group_sizes, group_type, pf, pbld, trials, num_cycles, gamma, b, topk, bins)  
+}
+
 #Mixed
 source("run_experiment.R")
 group_type <- "mixed"
-recom <- run_exp(ratings, items, utility_matrix, WU, group_sizes, group_type, pf, pbld, trials, num_cycles, gamma, b, topk, bins)  
+path <- paste0("results/",mname,"_",group_type,"_cycles_", num_cycles, "_gamma_", gamma, "_b_", b,sep = "")
+recom <- run_exp(ratings, items, utility_matrix, WU, group_sizes, group_type, pf, pbld, trials, num_cycles, gamma, b, topk, bins, path)  
+
 #compute system time
 #system.time(run_exp(ratings,items,utility_matrix,WU,group_sizes,group_type,pf,pbld,trials,num_cycles,gamma,b,topk,bins))
 
 
 #------test------------
-# rmat <- ratings
-# fmat <- items
-# umat <- utility_matrix
-# profiles <- WU
-# sizes <- group_sizes
-# prob_feedback <- pf
-# prob_BLD <- pbld
-# num_trials <- trials
-# num_cycles <- num_cycles
-# gamma <- gamma
-# b <- b
-# topk <- topk
-# bins <- bins
-# gname <- group_type
+rmat <- ratings
+fmat <- items
+umat <- utility_matrix
+profiles <- WU
+sizes <- group_sizes
+prob_feedback <- pf
+prob_BLD <- pbld
+num_trials <- trials
+num_cycles <- num_cycles
+gamma <- gamma
+b <- b
+topk <- topk
+bins <- bins
+gname <- group_type
