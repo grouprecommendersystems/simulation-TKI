@@ -34,6 +34,7 @@ run_exp <- function(rmat, fmat, umat, profiles, sizes, gname, prob_feedback, pro
   loss_new <- matrix(0,length(sizes),num_cycles)
   loss_mixed <- list()
   loss_mixed_new <- list()
+  num_constraint_group_mixed <- list()
   idx_size <- 1
   num_constraint_group <- matrix(0,length(sizes),num_cycles)
   user_profile_diff <- matrix(0,length(sizes),num_cycles)
@@ -55,7 +56,7 @@ run_exp <- function(rmat, fmat, umat, profiles, sizes, gname, prob_feedback, pro
     if(group_type=="mixed"){
       # group_styles <- read.table(file_name_02) #Mixed
       # group_styles <- as.matrix(group_styles)
-      group_styles <- matrix(rep(c(2,3),size), nrow=num_trials, ncol = size, byrow = TRUE)
+      group_styles <- matrix(rep(c(2,4),size), nrow=num_trials, ncol = size, byrow = TRUE)
       #group_styles <- matrix(rep(c(1:5),size), nrow=num_trials, ncol = size, byrow = TRUE)
     }else{
       code <- get_style_name(gname)
@@ -64,6 +65,7 @@ run_exp <- function(rmat, fmat, umat, profiles, sizes, gname, prob_feedback, pro
     count_mixed <- matrix(0, nrow=num_cycles, ncol=5) #ncol is number of resolution styles
     tmp_loss_mixed <- matrix(0, nrow=num_cycles, ncol=5) #ncol is number of resolution styles
     tmp_loss_mixed_new <- matrix(0, nrow=num_cycles, ncol=5) #ncol is number of resolution styles
+    count_constraint_mixed <- matrix(0, nrow=num_cycles, ncol=5) #ncol is number of resolution styles
     
     for(cur in 1:num_trials){ # repeat 100 times
       #cur=1
@@ -149,6 +151,7 @@ run_exp <- function(rmat, fmat, umat, profiles, sizes, gname, prob_feedback, pro
           # inferred_constraints[[uidx]] <- tmp
           if(sum(tmp!=0)>0){
             num_constraints[t] <- num_constraints[t] + dim(tmp)[1]
+            count_constraint_mixed[t,conflict_type] <- count_constraint_mixed[t,conflict_type] + dim(tmp)[1] 
           }
           
         }#end-for uidx in members 
@@ -218,6 +221,7 @@ run_exp <- function(rmat, fmat, umat, profiles, sizes, gname, prob_feedback, pro
       count_mixed[count_mixed==0]<-1
       loss_mixed[[idx_size]] <- tmp_loss_mixed/count_mixed 
       loss_mixed_new[[idx_size]] <- tmp_loss_mixed_new/count_mixed
+      num_constraint_group_mixed[[idx_size]] <- count_constraint_mixed/count_mixed
     }
     idx_size <- idx_size + 1
     print(paste0("Finish group ",size))
@@ -236,8 +240,8 @@ run_exp <- function(rmat, fmat, umat, profiles, sizes, gname, prob_feedback, pro
   }else{
     names(loss_mixed) <- sizes
     write.table(loss_mixed, file = paste0(path,"_LOSS_OUT",".txt", sep = ""))
-    write.table(loss_mixed, file = paste0(path,"_LOSS_IN",".txt", sep = ""))
-    # write.table(xxx, file = paste0(path,"_NUM_CONSTRAINTS",".txt", sep = ""))
+    write.table(loss_mixed_new, file = paste0(path,"_LOSS_IN",".txt", sep = ""))
+    write.table(num_constraint_group_mixed, file = paste0(path,"_NUM_CONSTRAINTS",".txt", sep = ""))
     
   }
   #return (loss)

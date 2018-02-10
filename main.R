@@ -56,7 +56,7 @@ utility_matrix <- WU%*%t(items)
 source("initialize_probabilities.R")
 bins <- c(0,0.2,0.4,1)
 pf <- init_eval_prob(group_ratings)
-is_fixed <- TRUE  
+is_fixed <- FALSE  
 pbld <- init_BLD_prob(group_ratings,utility_matrix,bins,is_fixed)
 if(is_fixed){
   mname <- "DETER"
@@ -64,7 +64,7 @@ if(is_fixed){
   mname <- "STOCH"
 
 #experiments
-trials <- 10 # run 100 trials for each experiment
+trials <- 20 # run 100 trials for each experiment
 num_cycles <- 10
 gamma <- 0.3
 b <- 90

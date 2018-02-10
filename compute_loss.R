@@ -29,8 +29,9 @@ compute_loss_indv <- function(group, umat, gchoice){
       umat[x,iidx_sorted[1]]
     })
   res <- abs(personal-umat[group,gchoice])
-  #res <- personal-umat[group,gchoice]
-  return (res)
+  max_val <- max(res)
+  min_val <- min(res)
+  return (c(max_val,min_val))
 }
 compute_loss_indv_in_group <- function(group, umat, gchoice, fmat, WUG){
   mat <- as.matrix(WUG)%*%t(fmat)
@@ -40,5 +41,8 @@ compute_loss_indv_in_group <- function(group, umat, gchoice, fmat, WUG){
       mat[x,iidx_sorted[1]]
     })
   res <- abs(personal_in_group-mat[group,gchoice])
-  return (res)
+  max_val <- max(res)
+  min_val <- min(res)
+  return (c(max_val,min_val))
+  
 }
