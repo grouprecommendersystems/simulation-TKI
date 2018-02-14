@@ -3,13 +3,10 @@ library(reshape2)
 library(gridExtra)
 library(dplyr)
 #scores <- score_mixed
-plot_data <- function(size, scores, num_cycles, is_homogeneous, data_type){
-  if(is_homogeneous){
-    idxs <- seq(from = size-1, to = dim(scores)[1], by=dim(scores)[1]/5) #5 is 5 styles
-  }else{
-    tmp <- (size-1)*5
-    idxs <- (tmp-4):tmp
-  }
+plot_data <- function(size, scores, num_cycles, data_type){
+  
+  idxs <- seq(from = size-1, to = dim(scores)[1], by=dim(scores)[1]/5) #5 is 5 styles
+  
   cycles <- 1:num_cycles
   mycolors <-c("red","blue","sea green","orange","purple")
   myshapes <-15:19
@@ -31,11 +28,7 @@ plot_data <- function(size, scores, num_cycles, is_homogeneous, data_type){
   #   lim <- c(0.04,0.052)
   # }
   
-  if(is_homogeneous){
-    title <- paste0("Groups of size ",size," (same style)")
-  }else{
-    title <- paste0("Groups of size ",size," (mixed styles)")
-  }
+  title <- paste0("Groups of size ",size," (same style)")
   vertical_title = "Average utility loss"
   if(data_type==1){
     vertical_title <- paste0(vertical_title," (ORIGINAL)")
@@ -77,16 +70,14 @@ for(k in seq_along(data_type)){
   }
   p <- list(NULL)
   for(size in group_sizes){
-    p[[size-1]] <- plot_data(size,score_types,num_cycles,TRUE,k)
+    p[[size-1]] <- plot_data(size,score_types,num_cycles,k)
     show(p[[size-1]]) 
     #ggsave(p[[size-1]],filename=paste0("results/loss_g",size,".png",sep=""))
   }
 }  
 
 
-
-
-#Plot: Heterogeneous (mixed) results
+#Plot 2: Heterogeneous (mixed) results
 plot_data_mixed <- function(size, scores, num_cycles, compare_styles, data_type){
   tmp <- (size-1)*5
   idxs <- (tmp-4):tmp
@@ -115,8 +106,16 @@ plot_data_mixed <- function(size, scores, num_cycles, compare_styles, data_type)
     vertical_title <- paste0(vertical_title," (UPDATED)")
   }
   
+  if(size==2 && k==2){
+    lim <- c(0.052,0.09)
+  }else if(size==2 && k==1){
+    lim <- c(0.05,0.12)
+  }else{
+    lim <- c(0.05,0.2)
+  }
+  
   plot <- ggplot(data=df2, aes(x=cycles, y=loss, group=type, colour=type)) +
-    geom_line(aes(linetype=type), # Line type depends on size
+    geom_line(#aes(linetype=type), # Line type depends on size
               size = 0.5,show.legend = FALSE) +       # Thicker line
     geom_point(aes(shape=type),   # Shape depends on size
                size = 2) +       # Large points
@@ -127,35 +126,34 @@ plot_data_mixed <- function(size, scores, num_cycles, compare_styles, data_type)
     #theme(legend.position="none")+
     xlab("# of interaction cycles") +
     ylab(vertical_title)+
-    # ylim(lim)+
+    ylim(lim)+
     ggtitle(paste0("Groups of size ",size," (mixed styles)"))
   return (plot)
 }
 
 data_type <- c("_LOSS_OUT","_LOSS_IN")
 for(k in seq_along(data_type)){
-  path <- paste0("results/",mname,"_",group_type,"_cycles_", num_cycles, "_gamma_", gamma, "_b_", b,sep = "")
-  fname <- paste0(path,data_type[k],".txt", sep = "")
-  score_mixed <- read.table(fname)
-  score_mixed <- as.matrix(score_mixed)
-  score_mixed <- t(score_mixed)
-  rownames(score_mixed) <- rep(1:5,4)
-  #score_mixed <- score_mixed[apply(score_mixed,1,sum)!=0,]
-  compare_styles <- unique(which((apply(score_mixed,1,sum)[1:5])!=0))
-  
-  p <- list(NULL)
-  for(size in c(2,4)){
-    p[[size-1]] <- plot_data_mixed(size,score_mixed,num_cycles,compare_styles,k)
-    show(p[[size-1]]) 
-    #ggsave(p[[size-1]],filename=paste0("results/loss_mixed_g",size,".png",sep=""))
+#for(k in 1){  
+  for(i in c(1,3,4,5)){
+    pname <- styles[i]
+    path <- paste0("results/",mname,"_",group_type,"_cycles_", num_cycles, "_gamma_", gamma, "_b_", b, "_compete-", pname, sep = "")
+    # path <- paste0("results/",mname,"_",group_type,"_cycles_", num_cycles, "_gamma_", gamma, "_b_", b,sep = "")
+    fname <- paste0(path,data_type[k],".txt", sep = "")
+    score_mixed <- read.table(fname)
+    score_mixed <- as.matrix(score_mixed)
+    score_mixed <- t(score_mixed)
+    rownames(score_mixed) <- rep(1:5,4)
+    #score_mixed <- score_mixed[apply(score_mixed,1,sum)!=0,]
+    compare_styles <- unique(which((apply(score_mixed,1,sum)[1:5])!=0))
+    
+    p <- list(NULL)
+    for(size in c(2,4)){
+      p[[size-1]] <- plot_data_mixed(size,score_mixed,num_cycles,compare_styles,k)
+      show(p[[size-1]]) 
+      #ggsave(p[[size-1]],filename=paste0("results/loss_mixed_g",size,".png",sep=""))
+    }
   }
 }
-
-
-
-
-
-
 
 #combine
 g_legend<-function(a.gplot){

@@ -28,7 +28,8 @@ source("compute_loss.R")
 #' @export
 #'
 #' @examples
-run_exp <- function(rmat, fmat, umat, profiles, sizes, gname, prob_feedback, prob_BLD, num_trials, num_cycles, gamma, b, topk, bins, path){
+run_exp <- function(rmat, fmat, umat, profiles, sizes, gname, prob_feedback, prob_BLD, 
+                    num_trials, num_cycles, gamma, b, topk, bins, path, mixed_pair=0){
   recom_idxs <- list(NULL)
   loss <- matrix(0,length(sizes),num_cycles)
   loss_new <- matrix(0,length(sizes),num_cycles)
@@ -56,7 +57,8 @@ run_exp <- function(rmat, fmat, umat, profiles, sizes, gname, prob_feedback, pro
     if(group_type=="mixed"){
       # group_styles <- read.table(file_name_02) #Mixed
       # group_styles <- as.matrix(group_styles)
-      group_styles <- matrix(rep(c(2,4),size), nrow=num_trials, ncol = size, byrow = TRUE)
+      # group_styles <- matrix(rep(c(2,4),size), nrow=num_trials, ncol = size, byrow = TRUE)
+      group_styles <- matrix(rep(c(2,mixed_pair),size), nrow=num_trials, ncol = size, byrow = TRUE)
       #group_styles <- matrix(rep(c(1:5),size), nrow=num_trials, ncol = size, byrow = TRUE)
     }else{
       code <- get_style_name(gname)
@@ -206,7 +208,13 @@ run_exp <- function(rmat, fmat, umat, profiles, sizes, gname, prob_feedback, pro
             }
           }
         }
-        tmp_user_profile_diff[t] <- mean(WU_updated[[t]][current_group,] - profiles[current_group,])
+        #TEST: how much the updated utility vector is close to the original one
+        for(u in current_group){
+          #tmp_user_profile_diff[t] <- tmp_user_profile_diff[t]+ cosine(WU_updated[[t]][u,], profiles[u,])
+          tmp_user_profile_diff[t] <- tmp_user_profile_diff[t]+ dist(rbind(WU_updated[[t]][u,], profiles[u,])) #euclidian
+        }
+        tmp_user_profile_diff[t] <- tmp_user_profile_diff[t] / length(current_group)
+       
       }#end-for interaction length
       if(gname!="mixed"){
         loss[idx_size,] <- loss[idx_size,] + tmp_loss
@@ -228,15 +236,15 @@ run_exp <- function(rmat, fmat, umat, profiles, sizes, gname, prob_feedback, pro
   }#end-for group size
 
   if(gname!="mixed"){
-    loss <- loss / num_trials
-    write.table(loss,file = paste0(path,"_LOSS_OUT",".txt", sep = ""))
-    loss_new <- loss_new / num_trials
-    write.table(loss_new, file = paste0(path,"_LOSS_IN",".txt", sep = ""))
+    # loss <- loss / num_trials
+    # write.table(loss,file = paste0(path,"_LOSS_OUT",".txt", sep = ""))
+    # loss_new <- loss_new / num_trials
+    # write.table(loss_new, file = paste0(path,"_LOSS_IN",".txt", sep = ""))
     user_profile_diff <- user_profile_diff / num_trials
-    write.table(user_profile_diff, file = paste0(path,"_PROFILE",".txt", sep = ""))
-    pos_group_choice <- pos_group_choice / num_trials
-    write.table(pos_group_choice, file = paste0(path,"_GCHOICE",".txt", sep = ""))
-    write.table(round(num_constraint_group/num_trials,0), file = paste0(path,"_NUM_CONSTRAINTS",".txt", sep = ""))
+    write.table(round(user_profile_diff,3), file = paste0(path,"_PROFILE",".txt", sep = ""))
+    # pos_group_choice <- pos_group_choice / num_trials
+    # write.table(pos_group_choice, file = paste0(path,"_GCHOICE",".txt", sep = ""))
+    # write.table(round(num_constraint_group/num_trials,0), file = paste0(path,"_NUM_CONSTRAINTS",".txt", sep = ""))
   }else{
     names(loss_mixed) <- sizes
     write.table(loss_mixed, file = paste0(path,"_LOSS_OUT",".txt", sep = ""))

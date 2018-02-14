@@ -38,8 +38,8 @@ run_exp_personal <- function(rmat, fmat, umat, profiles, sizes, gname, prob_feed
     }
     count_mixed <- matrix(0, nrow=num_cycles, ncol=5) #ncol is number of resolution styles
     tmp_loss_mixed <- matrix(0, nrow=num_cycles, ncol=5) #ncol is number of resolution styles
-    loss_personal <- matrix(0,num_cycles,2) # 2 cols containing the Min - Max utility values
-    loss_personal_new <- matrix(0,num_cycles,2) # 2 cols: Min - Max
+    loss_personal <- matrix(0, num_cycles, size)
+    loss_personal_new <- matrix(0, num_cycles, size) 
     
     for(cur in 1:num_trials){ # repeat 100 times
       current_group <- group_members[cur,]
@@ -50,8 +50,8 @@ run_exp_personal <- function(rmat, fmat, umat, profiles, sizes, gname, prob_feed
       num_prop_items <- 0
       who_what_prop <- data.frame(user=c(0),prop_item=c(0))
       WU_updated <- list(NULL)
-      tmp_loss_personal <- matrix(0, nrow=num_cycles, ncol=2) # 2 cols: Min - Max
-      tmp_loss_personal_new <- matrix(0, nrow=num_cycles, ncol=2) # 2 cols: Min - Max
+      tmp_loss_personal <- matrix(0, nrow=num_cycles, ncol=size) 
+      tmp_loss_personal_new <- matrix(0, nrow=num_cycles, ncol=size) 
       
       for(t in 1:num_cycles){ #interaction length
         if(t==1){
@@ -153,8 +153,16 @@ run_exp_personal <- function(rmat, fmat, umat, profiles, sizes, gname, prob_feed
       #print(paste0("Finish validation ",cur))
     }#end-for trials (validations)
     if(gname!="mixed"){
-      loss_size[[idx_size]] <- loss_personal / num_trials
-      loss_size_new[[idx_size]] <- loss_personal_new / num_trials
+      # loss_size[[idx_size]] <- loss_personal / num_trials
+      # loss_size_new[[idx_size]] <- loss_personal_new / num_trials
+      min_loss <- apply((loss_personal / num_trials), 1, min)
+      max_loss <- apply((loss_personal / num_trials), 1, max)
+      min_loss_new <- apply((loss_personal_new / num_trials), 1, min)
+      max_loss_new <- apply((loss_personal_new / num_trials), 1, max)
+      loss_size[[idx_size]] <- data.frame(max_loss, min_loss)
+      #print(loss_size)
+      loss_size_new[[idx_size]] <- data.frame(max_loss_new, min_loss_new)
+      #print(loss_size_new)
     }else{
       count_mixed[count_mixed==0]<-1
       loss_mixed[[idx_size]] <- tmp_loss_mixed/count_mixed 

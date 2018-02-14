@@ -19,10 +19,18 @@ read_result <- function(size,k){
     g <- mat[,start:end]
     cycles <- 1:num_cycles
     df <- data.frame(cbind(cycles=1:num_cycles,g))
-    names(df) <- c("cycles","max utility","min utility")
+    names(df) <- c("cycles","max avg utility","min avg utility")
     mylabels <- as.list(c("max utility","min utility"))
     df2 <- melt(data = df, id.vars = "cycles", variable.name = "utility", value.name = "loss")
     title <- paste0("Groups of size ",size," (style: ",type,")")
+    
+    if(size==2){
+      lim <- c(0.045,0.12)
+    }else if(size==3){
+      lim <- c(0.05,0.18)
+    }else{
+      lim <- c(0.05,0.22)
+    }
     
     plot <- ggplot(data=df2, aes(x=cycles, y=loss, group=utility, colour=utility)) +
       geom_line(aes(linetype=utility), # Line type depends on size
@@ -36,7 +44,7 @@ read_result <- function(size,k){
       #theme(legend.position="none")+
       xlab("# of interaction cycles") + 
       ylab(ytitle)+
-      # ylim(lim)+
+      ylim(lim)+
       ggtitle(title)
     show(plot)
   }

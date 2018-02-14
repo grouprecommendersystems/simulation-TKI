@@ -1,5 +1,6 @@
 library(dplyr)
 library(purrr)
+library(coop)
 #load data from files
 ratings<-read.csv("data/reviews.csv",TRUE,",") # header = FALSE
 ratings<-as.matrix(ratings)
@@ -64,7 +65,7 @@ if(is_fixed){
   mname <- "STOCH"
 
 #experiments
-trials <- 20 # run 100 trials for each experiment
+trials <- 100 # run 100 trials for each experiment
 num_cycles <- 10
 gamma <- 0.3
 b <- 90
@@ -74,7 +75,7 @@ styles <- c("compromise","compete","accommodate","avoid","collaborate")
 
 #Test case 1A
 source("run_experiment.R")
-for(i in 1:5){
+for(i in 2:3){
   group_type <- styles[i]
   
   path <- paste0("results/",mname,"_",group_type,"_cycles_", num_cycles, "_gamma_", gamma, "_b_", b,sep = "")
@@ -91,8 +92,13 @@ for(i in 1:5){
 #Mixed
 source("run_experiment.R")
 group_type <- "mixed"
-path <- paste0("results/",mname,"_",group_type,"_cycles_", num_cycles, "_gamma_", gamma, "_b_", b,sep = "")
-recom <- run_exp(ratings, items, utility_matrix, WU, group_sizes, group_type, pf, pbld, trials, num_cycles, gamma, b, topk, bins, path)  
+for(i in c(1,3,4,5)){
+  pname <- styles[i]
+  path <- paste0("results/",mname,"_",group_type,"_cycles_", num_cycles, "_gamma_", gamma, "_b_", b, "_compete-", pname, sep = "")
+  recom <- run_exp(ratings, items, utility_matrix, WU, group_sizes, group_type, pf, 
+                   pbld, trials, num_cycles, gamma, b, topk, bins, path,i)  
+  
+}
 
 #compute system time
 #system.time(run_exp(ratings,items,utility_matrix,WU,group_sizes,group_type,pf,pbld,trials,num_cycles,gamma,b,topk,bins))
